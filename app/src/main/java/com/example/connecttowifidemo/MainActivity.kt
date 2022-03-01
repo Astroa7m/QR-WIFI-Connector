@@ -1,12 +1,14 @@
 package com.example.connecttowifidemo
 
 import android.annotation.SuppressLint
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.net.*
+import android.content.IntentFilter
+import android.net.ConnectivityManager
 import android.net.wifi.WifiConfiguration
 import android.net.wifi.WifiManager
-import android.net.wifi.WifiNetworkSpecifier
+import android.net.wifi.WifiNetworkSuggestion
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
@@ -27,8 +29,8 @@ import com.example.connecttowifidemo.ui.theme.ConnectToWifiDemoTheme
 import com.example.connecttowifidemo.util.is29AndAbove
 
 class MainActivity : ComponentActivity() {
-    private lateinit var connectivityManager: ConnectivityManager
     private lateinit var wifiManager: WifiManager
+    private lateinit var connectivityManager: ConnectivityManager
     private val launcher =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {}
     private var hasScanned = false
@@ -38,11 +40,12 @@ class MainActivity : ComponentActivity() {
         setContent {
 
             ConnectToWifiDemoTheme {
-                connectivityManager = remember {
-                    getSystemService(CONNECTIVITY_SERVICE) as ConnectivityManager
-                }
                 wifiManager = remember {
                     getSystemService(Context.WIFI_SERVICE) as WifiManager
+                }
+
+                connectivityManager = remember {
+                    getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
                 }
 
                 Box(
@@ -63,7 +66,7 @@ class MainActivity : ComponentActivity() {
                                 if (!hasScanned) {
                                     hasScanned = true
                                     is29AndAbove {
-                                        connect29AndAbove(
+                                        connectionAbove29WithSuggestion(
                                             ssid = ssid,
                                             passPhrase = pw
                                         )
@@ -85,6 +88,33 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.Q)
+    fun connectionAbove29WithSuggestion(ssid: String, passPhrase: String) {
+        if (!wifiManager.isWifiEnabled) {
+            Toast.makeText(this, "Wifi is disabled please enable it to proceed", Toast.LENGTH_SHORT).show()
+            val panelIntent = Intent(Settings.Panel.ACTION_WIFI)
+            launcher.launch(panelIntent)
+        }
+        val suggestion = WifiNetworkSuggestion.Builder()
+            .setSsid(ssid)
+            .setWpa2Passphrase(passPhrase)
+            .setIsAppInteractionRequired(true)
+            .build()
+
+        wifiManager.addNetworkSuggestions(listOf(suggestion))
+
+        val intentFilter = IntentFilter(WifiManager.ACTION_WIFI_NETWORK_SUGGESTION_POST_CONNECTION)
+
+        val broadcastReceiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context, intent: Intent) {
+                if (!intent.action.equals(WifiManager.ACTION_WIFI_NETWORK_SUGGESTION_POST_CONNECTION)) {
+                    return
+                }
+            }
+        }
+        this.registerReceiver(broadcastReceiver, intentFilter)
     }
 
     @SuppressLint("MissingPermission")
@@ -111,43 +141,6 @@ class MainActivity : ComponentActivity() {
         hasScanned = false
     }
 
-    @RequiresApi(Build.VERSION_CODES.Q)
-    fun connect29AndAbove(ssid: String, passPhrase: String) {
-        if (!wifiManager.isWifiEnabled) {
-            Toast.makeText(this, "Wifi is disabled please enable it to proceed", Toast.LENGTH_SHORT)
-                .show()
-            val panelIntent = Intent(Settings.Panel.ACTION_WIFI)
-            launcher.launch(panelIntent)
-        }
-        val networkSpecifier: NetworkSpecifier = WifiNetworkSpecifier.Builder()
-            .setSsid(ssid)
-            .setWpa2Passphrase(passPhrase)
-            .setIsHiddenSsid(true)
-            .build()
-        val networkRequest = NetworkRequest.Builder()
-            .addTransportType(NetworkCapabilities.TRANSPORT_WIFI)
-            .setNetworkSpecifier(networkSpecifier)
-            .build()
-
-        connectivityManager.requestNetwork(networkRequest, mNetworkCallback)
-    }
-
-    private val mNetworkCallback: ConnectivityManager.NetworkCallback =
-        object : ConnectivityManager.NetworkCallback() {
-
-            override fun onUnavailable() {
-                super.onUnavailable()
-                Toast.makeText(this@MainActivity, "Couldn't connect", Toast.LENGTH_SHORT).show()
-                hasScanned = false
-            }
-
-            override fun onAvailable(network: Network) {
-                super.onAvailable(network)
-                // bind the wifi network so we don't lose connection after leaving the app
-                connectivityManager.bindProcessToNetwork(network)
-                Toast.makeText(this@MainActivity, "Connected", Toast.LENGTH_SHORT).show()
-            }
-        }
 }
 
 
