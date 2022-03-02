@@ -66,7 +66,7 @@ class MainActivity : ComponentActivity() {
                                 if (!hasScanned) {
                                     hasScanned = true
                                     is29AndAbove {
-                                        connectionAbove29WithSuggestion(
+                                        connectionWith29AndAbove(
                                             ssid = ssid,
                                             passPhrase = pw
                                         )
@@ -91,7 +91,7 @@ class MainActivity : ComponentActivity() {
     }
 
     @RequiresApi(Build.VERSION_CODES.Q)
-    fun connectionAbove29WithSuggestion(ssid: String, passPhrase: String) {
+    fun connectionWith29AndAbove(ssid: String, passPhrase: String) {
         if (!wifiManager.isWifiEnabled) {
             Toast.makeText(this, "Wifi is disabled please enable it to proceed", Toast.LENGTH_SHORT).show()
             val panelIntent = Intent(Settings.Panel.ACTION_WIFI)
@@ -115,6 +115,7 @@ class MainActivity : ComponentActivity() {
             }
         }
         this.registerReceiver(broadcastReceiver, intentFilter)
+        hasScanned = false
     }
 
     @SuppressLint("MissingPermission")
