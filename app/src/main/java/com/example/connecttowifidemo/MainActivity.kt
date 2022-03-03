@@ -131,16 +131,11 @@ class MainActivity : ComponentActivity() {
         conf.SSID = String.format("\"%s\"", ssid)
         conf.preSharedKey = String.format("\"%s\"", passPhrase)
         wifiManager.addNetwork(conf)
-        val list = wifiManager.configuredNetworks
-        for (i in list) {
-            if (i.SSID != null && i.SSID == "\"" + ssid + "\"") {
-                wifiManager.disconnect()
-                wifiManager.enableNetwork(i.networkId, true)
-                wifiManager.reconnect()
-                Toast.makeText(this, "Connecting...", Toast.LENGTH_SHORT).show()
-                break
-            }
-        }
+        val netId = wifiManager.addNetwork(conf)
+        wifiManager.disconnect()
+        wifiManager.enableNetwork(netId, true)
+        wifiManager.reconnect()
+        Toast.makeText(this, "Connecting...", Toast.LENGTH_SHORT).show()
         hasScanned = false
     }
 
