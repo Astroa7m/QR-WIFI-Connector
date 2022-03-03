@@ -66,7 +66,7 @@ class MainActivity : ComponentActivity() {
                                 if (!hasScanned) {
                                     hasScanned = true
                                     is29AndAbove {
-                                        connectionWith29AndAbove(
+                                        connect29AndAbove(
                                             ssid = ssid,
                                             passPhrase = pw
                                         )
@@ -91,7 +91,7 @@ class MainActivity : ComponentActivity() {
     }
 
     @RequiresApi(Build.VERSION_CODES.Q)
-    fun connectionWith29AndAbove(ssid: String, passPhrase: String) {
+    fun connect29AndAbove(ssid: String, passPhrase: String) {
         if (!wifiManager.isWifiEnabled) {
             Toast.makeText(this, "Wifi is disabled please enable it to proceed", Toast.LENGTH_SHORT).show()
             val panelIntent = Intent(Settings.Panel.ACTION_WIFI)
@@ -102,6 +102,8 @@ class MainActivity : ComponentActivity() {
             .setWpa2Passphrase(passPhrase)
             .setIsAppInteractionRequired(true)
             .build()
+
+        wifiManager.removeNetworkSuggestions(listOf(suggestion))
 
         wifiManager.addNetworkSuggestions(listOf(suggestion))
 
